@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+
+# bancos de dados locais
+*.db
+*.db-wal
+*.db-shm
+
+# o corpus do LongMemEval: 280 MB baixados, nao versionados
+bench/data/
+
+# saidas de corrida
+bench/*.log
+eval-falhou.db

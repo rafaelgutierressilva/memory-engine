@@ -1,0 +1,74 @@
+# ============================================================
+# Motor de Memoria — todos os botoes de calibragem moram aqui.
+# Fase 1 usa poucos; os demais ja estao documentados para as
+# fases seguintes, para nada ficar escondido no codigo.
+# ============================================================
+
+llm:
+  # false = modo determinístico: nenhuma chamada ao `claude -p`.
+  # O pipeline inteiro precisa funcionar assim (so heuristicas).
+  enabled: true
+  gate_model: haiku          # barato, roda a cada interacao
+  consolidation_model: default  # caro, roda no sono
+  chat_model: default        # o modelo que responde no chat.py
+  timeout_seconds: 120
+
+gate:
+  surprise_threshold: 6.0    # >= isso => carimba (escala 0-10)
+  heuristic_score: 8.0       # score atribuido quando heuristica dura dispara
+  signal_bonus: 0.5          # cada sinal duro extra soma isso (teto 10)
+  merge_confidence_step: 0.02   # quanto a confianca sobe numa confirmacao
+  merge_confidence_ceiling: 0.95
+  # --- fronteira entre "resolve de graca" e "paga haiku" -----------------
+  merge_coverage_min: 0.30   # quanto do fato a troca precisa ecoar p/ ser confirmacao
+  merge_novelty_max: 0.30    # novidade acima disso => inconclusivo => juiz LLM
+  merge_novelty_min_tokens: 3   # ...mas so se houver >= N palavras novas de fato
+  contradiction_coverage_min: 0.30  # sobreposicao minima p/ negacao virar contradicao
+  novel_topic_max_overlap: 0.10     # sobreposicao abaixo disso => assunto inedito
+  # Um assunto realmente novo vem com varias palavras de conteudo. Com 3,
+  # "Valeu, chegou certinho" (3 tokens, todos ineditos) virava assunto novo.
+  min_content_tokens: 5      # trocas menores que isso nunca contam como inedito
+  judge_facts: 5             # quantos fatos vao no prompt do juiz
+  # O portao esta no caminho quente da conversa e NUNCA pode ser gargalo.
+  # Estourou o orcamento => a camada 1 decide sozinha e o estouro vai pro log
+  # (`resolucao: llm_timeout`). Aperte este numero para trocar precisao por
+  # latencia; o relatorio de calibragem mostra quantas vezes bateu.
+  judge_timeout_s: 25
+
+purgatory:
+  ttl_days: 7                # sem maturar ate aqui => expired
+  purge_expired_after_days: 30  # so entao sai do disco
+  min_cluster_size: 2        # episodios do mesmo assunto que maturam juntos
+  high_surprise_score: 8.0   # velho + muito surpreendente => matura sozinho
+  cluster_similarity: 0.30   # dice minimo p/ dois episodios serem "o mesmo assunto"
+
+consolidation:
+  max_episodes_per_batch: 12    # teto de episodios por chamada de destilacao
+  audit_enabled: true           # o auditor. Desligar = gravar sem verificacao
+  new_fact_confidence: 0.70     # confianca inicial (+0.05 por episodio extra)
+  supersede_coverage_min: 0.35  # sobreposicao p/ virar candidato a substituicao
+  supersede_coverage_deterministic: 0.60  # sem LLM, so substitui se for muito claro
+
+decay:
+  half_life_days: 30         # meia-vida do score dos FATOS desde o ultimo uso
+  sink_threshold: 0.15       # abaixo disso => sunken (fora da busca)
+  # O arquivo bruto decai mais devagar: ele e a rede de seguranca da destilacao,
+  # entao vale a pena segurar mais tempo do que um fato ja destilado.
+  episode_half_life_days: 90
+  episode_sink_threshold: 0.05
+
+retrieval:
+  top_k: 4                   # vencedores da competicao por turno
+  # --- camada de fallback: o arquivo bruto -------------------------------
+  # A destilacao perde o detalhe incidental por desenho. Episodios ja
+  # consolidados continuam buscaveis com peso baixo, e so entram quando os
+  # fatos nao cobriram a pergunta. Cada entrada vira um evento
+  # `resgate_episodico` — o detector de perda da destilacao.
+  fallback_weight: 0.25      # multiplicador do score do cru (fato sempre ganha)
+  fallback_k: 2              # quantos trechos crus no maximo
+  fallback_coverage_min: 0.60   # abaixo dessa cobertura, recorre ao cru
+  core_max_lines: 5          # teto do nucleo sempre-presente
+  recency_half_life_days: 45
+
+paths:
+  db: memory.db              # relativo a raiz do projeto
