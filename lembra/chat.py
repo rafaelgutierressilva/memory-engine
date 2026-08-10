@@ -144,7 +144,7 @@ def turno_esquecimento(conn, mensagem: str, cfg, ultimo_episodio, mostrar) -> di
 
 
 def turno(conn, mensagem: str, cfg, *, verbose: bool = False,
-          mostrar=print, ultimo_episodio=None) -> dict:
+          mostrar=print, ultimo_episodio=None, seco: bool = False) -> dict:
     """Um turno completo. Devolve o que aconteceu, para o eval.py inspecionar."""
     inicio = time.monotonic()
 
@@ -178,6 +178,24 @@ def turno(conn, mensagem: str, cfg, *, verbose: bool = False,
                    f"{len(recuperacao.winners)} vencedores", DIM))
 
     # 2. a resposta
+    if seco:
+        # modo seco: nao chama LLM nenhuma. Serve para verificar instalacao e
+        # encanamento — recuperacao, montagem do prompt, portao e escrita no
+        # banco acontecem de verdade; so a geracao nao.
+        mostrar("")
+        mostrar(_c("[modo seco: nenhuma LLM chamada. O prompt que iria para o "
+                   "modelo:]", DIM))
+        for linha in prompt.splitlines():
+            mostrar(_c("  | " + linha, DIM))
+        mostrar("")
+        troca = f"Rafael: {mensagem}\nAssistente: (sem resposta — modo seco)"
+        decisao = gate.process(conn, troca, cfg, use_llm=False)
+        cor = {"carimbo": YELLOW, "fusao": GREEN, "passe": DIM}[decisao.action]
+        mostrar(_c(f"  ⟢ {decisao.headline()}", cor))
+        mostrar(_c(f"  ⟢ turno seco: {time.monotonic() - inicio:.1f}s, US$ 0.0000", DIM))
+        return {"recuperacao": recuperacao, "resposta": "", "decisao": decisao,
+                "custo_usd": 0.0, "prompt": prompt, "seco": True}
+
     resultado = responder(prompt, cfg)
     resposta = resultado.text.strip() if resultado.ok else ""
     if not resultado.ok:
@@ -255,6 +273,8 @@ def main(argv=None) -> int:
     p.add_argument("--db", help="banco alternativo")
     p.add_argument("-m", "--message", action="append",
                    help="modo nao-interativo: uma ou mais mensagens em sequencia")
+    p.add_argument("--no-llm", action="store_true",
+                   help="modo seco: nenhuma chamada de LLM (verifica encanamento)")
     args = p.parse_args(argv)
 
     cfg = config.load()
@@ -265,7 +285,7 @@ def main(argv=None) -> int:
             for mensagem in args.message:
                 print(_c(f"você › {mensagem}", BOLD))
                 saida = turno(conn, mensagem, cfg, verbose=args.verbose,
-                              ultimo_episodio=ultimo_episodio)
+                              ultimo_episodio=ultimo_episodio, seco=args.no_llm)
                 if saida.get("decisao") is not None and saida["decisao"].episode_id:
                     ultimo_episodio = saida["decisao"].episode_id
                 print()

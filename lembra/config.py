@@ -10,8 +10,36 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-CONFIG_PATH = Path(os.environ.get("LEMBRA_CONFIG", ROOT / "config.yaml"))
+PACOTE = Path(__file__).resolve().parent
+ROOT = PACOTE.parent
+EMBARCADO = PACOTE / "config.yaml"      # o padrao que viaja no pacote
+
+
+def descobrir() -> Path:
+    """Onde esta o config, em ordem de precedencia.
+
+    1. LEMBRA_CONFIG, se apontar para arquivo existente
+    2. ./config.yaml no diretorio atual — o jeito de um projeto ter o seu
+    3. ../config.yaml a partir do pacote — o repositorio em modo de desenvolvimento
+    4. o config embarcado no pacote instalado
+
+    O caminho do banco e resolvido RELATIVO AO CONFIG que venceu, entao um
+    projeto com config proprio grava no proprio diretorio, e a instalacao
+    global grava em ~/.lembra/.
+    """
+    env = os.environ.get("LEMBRA_CONFIG")
+    if env and Path(env).exists():
+        return Path(env)
+    local = Path.cwd() / "config.yaml"
+    if local.exists():
+        return local
+    do_repo = ROOT / "config.yaml"
+    if do_repo.exists():
+        return do_repo
+    return EMBARCADO
+
+
+CONFIG_PATH = descobrir()
 
 
 def _scalar(raw: str):
@@ -77,7 +105,7 @@ class Config:
 
     @classmethod
     def load(cls, path: Path | None = None) -> "Config":
-        p = Path(path or CONFIG_PATH)
+        p = Path(path) if path else descobrir()
         return cls(parse_yaml(p.read_text(encoding="utf-8")), p)
 
     def get(self, dotted: str, default=None):
@@ -97,8 +125,17 @@ class Config:
 
     @property
     def db_path(self) -> Path:
-        raw = Path(self.get("paths.db", "lembra.db"))
-        return raw if raw.is_absolute() else ROOT / raw
+        """Absoluto vale como esta; `~` expande; relativo resolve contra o CONFIG.
+
+        Resolver contra o config (e nao contra o pacote) e o que faz um projeto
+        com config proprio gravar no proprio diretorio, e a instalacao global
+        gravar em ~/.lembra/ em vez de dentro do site-packages.
+        """
+        raw = Path(str(self.get("paths.db", "lembra.db"))).expanduser()
+        if raw.is_absolute():
+            return raw
+        base = self.path.parent if self.path else ROOT
+        return (base / raw).resolve()
 
     def as_dict(self) -> dict:
         return self._data

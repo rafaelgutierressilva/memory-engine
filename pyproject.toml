@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lembra"
+version = "0.1.0"
+description = "Memoria de longo prazo para agentes conversacionais, com portao de surpresa. Long-term memory for conversational agents, gated by surprise."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Rafael Gutierres", email = "rafaelgutis3@gmail.com" }]
+keywords = [
+    "memory", "llm", "agents", "long-term-memory", "claude",
+    "conversational-ai", "retrieval", "sqlite",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Natural Language :: Portuguese (Brazilian)",
+    "Natural Language :: English",
+]
+
+# Nenhuma. E proposital: stdlib + SQLite, incluindo o leitor de YAML.
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/rgmidia/lembra"
+Repository = "https://github.com/rgmidia/lembra"
+Issues = "https://github.com/rgmidia/lembra/issues"
+
+[project.scripts]
+lembra = "lembra.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["lembra"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/lembra",
+    "/tests",
+    "/config.yaml",
+    "/README.md",
+    "/GLOSSARIO.md",
+    "/NOTAS-ARESTAS.md",
+    "/RELATORIO-FASE6.md",
+    "/LICENSE",
+]

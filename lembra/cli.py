@@ -492,6 +492,8 @@ def cmd_chat(args, conn):
     argv = []
     if args.verbose:
         argv.append("-v")
+    if args.no_llm:
+        argv.append("--no-llm")
     for m in (args.message or []):
         argv += ["-m", m]
     if args.db:
@@ -508,6 +510,8 @@ def cmd_eval(args, conn):
         argv += ["--chat-model", args.chat_model]
     if args.verbose:
         argv.append("-v")
+    if args.no_llm:
+        argv.append("--no-llm")
     return evaluation.main(argv)
 
 
@@ -601,12 +605,14 @@ def build_parser() -> argparse.ArgumentParser:
                     help="mostra o bloco de memoria injetado")
     ch.add_argument("-m", "--message", action="append",
                     help="modo nao-interativo; pode repetir")
+    ch.add_argument("--no-llm", action="store_true", help="modo seco, sem token")
     ch.set_defaults(func=cmd_chat)
 
     ev = sub.add_parser("eval", help="suite de regressao ponta-a-ponta")
     ev.add_argument("--estimar", action="store_true", help="so mostra a conta")
     ev.add_argument("--chat-model")
     ev.add_argument("-v", "--verbose", action="store_true")
+    ev.add_argument("--no-llm", action="store_true", help="modo seco, sem token")
     ev.set_defaults(func=cmd_eval)
 
     bc = sub.add_parser("bench", help="LongMemEval (repassa os argumentos)")

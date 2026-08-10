@@ -106,3 +106,26 @@ class StorageTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CaminhoDoBancoTest(unittest.TestCase):
+    """Onde o banco e gravado. Descoberto na instalacao limpa: sem expanduser,
+    `~/.lembra/lembra.db` virava um diretorio chamado `~` dentro do
+    site-packages."""
+
+    def _cfg(self, valor, arquivo):
+        return config.Config({"paths": {"db": valor}}, Path(arquivo))
+
+    def test_til_expande_para_o_home(self):
+        p = self._cfg("~/.lembra/lembra.db", "/qualquer/config.yaml").db_path
+        self.assertTrue(p.is_absolute())
+        self.assertNotIn("~", str(p))
+        self.assertEqual(p, Path.home() / ".lembra" / "lembra.db")
+
+    def test_absoluto_vale_como_esta(self):
+        self.assertEqual(self._cfg("/dados/x.db", "/qualquer/config.yaml").db_path,
+                         Path("/dados/x.db"))
+
+    def test_relativo_resolve_contra_o_config_nao_contra_o_pacote(self):
+        p = self._cfg("lembra.db", "/projeto/meu/config.yaml").db_path
+        self.assertEqual(p, Path("/projeto/meu/lembra.db"))

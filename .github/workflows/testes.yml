@@ -1,0 +1,33 @@
+name: testes
+
+# O piso e o teto de Python, medidos e nao chutados. Se alguem usar sintaxe
+# que so existe do 3.10 para cima, o job do 3.9 quebra e o pyproject deixa de
+# mentir.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.13"]   # piso declarado no pyproject e topo estavel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: suite
+        run: python -m unittest discover -s tests -v
+        env:
+          PYTHONPATH: .
+      - name: encanamento sem gastar token
+        run: |
+          python -m lembra.cli --db /tmp/ci.db seed
+          python -m lembra.cli --db /tmp/ci.db stats
+          python -m lembra.cli eval --no-llm
+        env:
+          PYTHONPATH: .

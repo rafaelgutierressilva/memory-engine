@@ -84,7 +84,7 @@ def _silencio(*args, **kwargs):
     pass
 
 
-def rodar(db_path, cfg, verbose=False) -> Resultado:
+def rodar(db_path, cfg, verbose=False, seco=False) -> Resultado:
     res = Resultado()
     conn = db.open_db(db_path)
     mostrar = print if verbose else _silencio
@@ -103,7 +103,7 @@ def rodar(db_path, cfg, verbose=False) -> Resultado:
 
             print(f"  [{i:>2}] {tipo:<15} {mensagem[:52]}", flush=True)
             saida = chat.turno(conn, mensagem, cfg, mostrar=mostrar,
-                               ultimo_episodio=ultimo_episodio)
+                               ultimo_episodio=ultimo_episodio, seco=seco)
             res.custo += saida["custo_usd"]
             res.turnos += 1
             decisao = saida.get("decisao")
@@ -122,18 +122,42 @@ def rodar(db_path, cfg, verbose=False) -> Resultado:
             else:
                 print("       -> nada apagado (alvo nao identificado)", flush=True)
 
-        avaliar(conn, res)
+        avaliar(conn, res, seco=seco)
     finally:
         conn.close()
     return res
 
 
-def avaliar(conn, res: Resultado) -> None:
+def avaliar(conn, res: Resultado, seco: bool = False) -> None:
+    """No modo seco, so valem os checks que nao dependem de LLM.
+
+    Sem destilacao nao ha fato novo, entao nao ha substituicao temporal nem
+    cascata com fatos derivados. O que continua valendo — e e o que a
+    verificacao de instalacao precisa provar — e que o portao decide, registra
+    a razao, escreve no banco e nunca deixa fato orfao.
+    """
     decisoes = [json.loads(r["payload"]) for r in conn.execute(
         "SELECT payload FROM events WHERE kind IN "
         "('gate_stamp','gate_merge','gate_pass') ORDER BY id")]
     carimbos = [d for d in decisoes if d.get("decisao") == "carimbo"]
     taxa = 100.0 * len(carimbos) / len(decisoes) if decisoes else 0.0
+
+    if seco:
+        res.check("o portao decidiu em todas as trocas",
+                  len(decisoes) >= 15,
+                  f"{len(decisoes)} decisoes registradas")
+        res.check("toda decisao registrou como foi resolvida",
+                  all(d.get("resolucao") and "pagou_llm" in d for d in decisoes),
+                  "resolucao e pagou_llm presentes em todas")
+        res.check("nenhuma decisao gastou token",
+                  not any(d.get("pagou_llm") for d in decisoes),
+                  f"custo total US$ {sum(d.get('custo_usd') or 0 for d in decisoes):.4f}")
+        res.check("nenhum fato sem proveniencia", not db.orphan_facts(conn),
+                  f"{len(db.orphan_facts(conn))} fato(s) orfao(s)")
+        res.check("episodios foram gravados",
+                  conn.execute("SELECT COUNT(*) FROM episodes").fetchone()[0] > 0,
+                  f"{conn.execute('SELECT COUNT(*) FROM episodes').fetchone()[0]} episodios")
+        return
 
     res.check(
         "taxa de carimbo na faixa do roteiro",
@@ -191,6 +215,8 @@ def main(argv=None) -> int:
     p.add_argument("--db", help="banco a usar (padrao: temporario e limpo)")
     p.add_argument("--chat-model", help="sobrepoe llm.chat_model (ex.: haiku)")
     p.add_argument("-v", "--verbose", action="store_true")
+    p.add_argument("--no-llm", action="store_true",
+                   help="modo seco: roda o roteiro sem gastar token")
     args = p.parse_args(argv)
 
     if args.estimar:
@@ -200,6 +226,8 @@ def main(argv=None) -> int:
     cfg = config.load()
     if args.chat_model:
         cfg._data.setdefault("llm", {})["chat_model"] = args.chat_model
+    if args.no_llm:
+        cfg._data.setdefault("llm", {})["enabled"] = False
 
     tmp = None
     if args.db:
@@ -211,7 +239,7 @@ def main(argv=None) -> int:
     print(f"eval: banco limpo em {caminho}")
     print(f"      {len(TROCAS)} trocas, 2 rodadas de sono\n")
     try:
-        res = rodar(caminho, cfg, verbose=args.verbose)
+        res = rodar(caminho, cfg, verbose=args.verbose, seco=args.no_llm)
     finally:
         pass
 
