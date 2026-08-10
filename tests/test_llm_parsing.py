@@ -6,7 +6,7 @@ de versao, nao contrato. Todo formato abaixo tem que funcionar.
 
 import unittest
 
-from memory.llm import extract_json, strip_fences
+from lembra.llm import extract_json, strip_fences
 
 
 class ExtractJsonTest(unittest.TestCase):
@@ -80,15 +80,15 @@ class AsObjectTest(unittest.TestCase):
     """A mesma pergunta as vezes volta {...} e as vezes [{...}]."""
 
     def test_dict_passa_direto(self):
-        from memory.llm import as_object
+        from lembra.llm import as_object
         self.assertEqual(as_object({"a": 1}), {"a": 1})
 
     def test_lista_de_um_e_desembrulhada(self):
-        from memory.llm import as_object
+        from lembra.llm import as_object
         self.assertEqual(as_object([{"a": 1}]), {"a": 1})
 
     def test_lista_de_varios_nao_e_objeto(self):
-        from memory.llm import as_object
+        from lembra.llm import as_object
         self.assertIsNone(as_object([{"a": 1}, {"b": 2}]))
         self.assertIsNone(as_object(None))
         self.assertIsNone(as_object("texto"))

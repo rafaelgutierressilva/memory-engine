@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+# ALIAS DE COMPATIBILIDADE — `runbench` virou `lembra bench`.
+# Mantido para nao quebrar dedo-memoria e scripts antigos.
 set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export PYTHONPATH="$DIR${PYTHONPATH:+:$PYTHONPATH}"
-exec "$DIR/.venv/bin/python" "$DIR/bench.py" "$@"
+echo "aviso: \`runbench\` agora e \`lembra bench\` (este alias segue funcionando)" >&2
+exec "$DIR/bin/lembra" bench "$@"

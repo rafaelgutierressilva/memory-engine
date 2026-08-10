@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from memory import config, db
+from lembra import config, db
 
 
 class ConfigParserTest(unittest.TestCase):

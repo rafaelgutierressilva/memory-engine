@@ -10,7 +10,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from memory import config, db, forget, retrieval
+from lembra import config, db, forget, retrieval
 
 
 def dias_atras(n) -> str:
@@ -147,7 +147,7 @@ class EsquecimentoMandaNoFallbackTest(BaseHibridoTest):
 
     def test_purga_bloqueada_enquanto_sustentar_fato(self):
         """Sair do indice quente nao e sair do mundo."""
-        from memory import sleep as sleep_mod
+        from lembra import sleep as sleep_mod
         self.conn.execute("UPDATE episodes SET status = 'expired', "
                           "status_changed_at = ? WHERE id = ?",
                           (dias_atras(90), self.ep))

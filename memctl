@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# memctl — wrapper: usa o interpretador do venv do projeto, de qualquer cwd.
+# ALIAS DE COMPATIBILIDADE — `memctl` virou `lembra `.
+# Mantido para nao quebrar dedo-memoria e scripts antigos.
 set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export PYTHONPATH="$DIR${PYTHONPATH:+:$PYTHONPATH}"
-exec "$DIR/.venv/bin/python" -m memory.cli "$@"
+echo "aviso: \`memctl\` agora e \`lembra\` (este alias segue funcionando)" >&2
+exec "$DIR/bin/lembra"  "$@"

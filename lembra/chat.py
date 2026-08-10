@@ -20,7 +20,7 @@ import argparse
 import sys
 import time
 
-from memory import config, db, forget, gate, llm, retrieval
+from lembra import config, db, forget, gate, llm, retrieval
 
 DIM, RESET = "\033[2m", "\033[0m"
 GREEN, YELLOW, CYAN, RED, BOLD = ("\033[32m", "\033[33m", "\033[36m",
@@ -229,11 +229,11 @@ def repl(conn, cfg, verbose: bool) -> int:
             print(_c(f"verbose {'ligado' if verbose else 'desligado'}", DIM))
             continue
         if mensagem == "/memoria":
-            from memory.cli import main as memctl
+            from lembra.cli import main as memctl
             memctl(["list-facts", "--current"])
             continue
         if mensagem == "/sono":
-            from memory.cli import main as memctl
+            from lembra.cli import main as memctl
             memctl(["sleep"])
             continue
 

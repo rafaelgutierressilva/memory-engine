@@ -23,7 +23,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from memory import config, db, gate, llm, retrieval, sleep as sleep_mod
+from lembra import config, db, gate, llm, retrieval, sleep as sleep_mod
 
 BENCH_DIR = Path(__file__).resolve().parent / "bench"
 

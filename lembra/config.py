@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-CONFIG_PATH = Path(os.environ.get("MEMENGINE_CONFIG", ROOT / "config.yaml"))
+CONFIG_PATH = Path(os.environ.get("LEMBRA_CONFIG", ROOT / "config.yaml"))
 
 
 def _scalar(raw: str):
@@ -97,7 +97,7 @@ class Config:
 
     @property
     def db_path(self) -> Path:
-        raw = Path(self.get("paths.db", "memory.db"))
+        raw = Path(self.get("paths.db", "lembra.db"))
         return raw if raw.is_absolute() else ROOT / raw
 
     def as_dict(self) -> dict:

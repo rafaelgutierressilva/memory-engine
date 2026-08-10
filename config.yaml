@@ -71,4 +71,4 @@ retrieval:
   recency_half_life_days: 45
 
 paths:
-  db: memory.db              # relativo a raiz do projeto
+  db: lembra.db              # relativo a raiz do projeto

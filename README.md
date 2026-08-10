@@ -1,8 +1,15 @@
-# Motor de Memória com Portão de Surpresa
+# lembra
 
-Memória de longo prazo para agentes conversacionais. A LLM de tudo é o próprio
-Claude, chamado via `claude -p` (headless). Python puro + SQLite, **zero
-dependências de terceiros**.
+**Memória de longo prazo para agentes conversacionais.** Python puro + SQLite,
+**zero dependências de terceiros**. A LLM de tudo é o próprio Claude, chamado
+via `claude -p` (headless).
+
+🇧🇷 Português (abaixo) · 🇺🇸 [English](#english) · 📖 [Glossário / Glossary](GLOSSARIO.md)
+
+> O vocabulário do projeto é em português — *carimbo*, *purgatório*, *cartório*,
+> *sono* — e continua em português na documentação em inglês. Cada palavra foi
+> escolhida porque a alternativa em inglês descreveria outro comportamento. O
+> [glossário](GLOSSARIO.md) explica cada escolha.
 
 A ideia central: **a maioria das interações não merece virar memória.** Elas
 confirmam o que já se sabe. Guardar tudo é caro, e — pior — enche a memória de
@@ -109,19 +116,26 @@ embeddings. Score = BM25 × recência × confiança. Fato com vigência encerrad
 
 ## Como usar
 
+Um binário, subcomandos para tudo:
+
 ```bash
-./chat -v                      # conversar com o Claude ATRAVÉS do motor
-./memctl stats                 # panorama
-./memctl list-facts --current  # só o que vale hoje
-./memctl inspect <id>          # fato + cadeia de proveniência + cadeia temporal
-./memctl sleep                 # rodada de consolidação + decaimento
-./memctl sleep --dry-run       # quem maturaria, sem gastar nada
-./memctl gate-log              # o KPI: cada decisão e como foi resolvida
-./memctl calibrate             # o que girar no config, e por quê
-./memctl forget <ep_id>        # deleção dirigida + cascata
-./eval --estimar               # a conta antes de rodar a regressão
-./eval                         # a suíte ponta-a-ponta
+lembra chat -v                 # conversar com o Claude ATRAVÉS do motor
+lembra stats                   # panorama
+lembra list-facts --current    # só o que vale hoje
+lembra inspect <id>            # fato + proveniência + cadeia temporal
+lembra sleep                   # rodada de consolidação + decaimento
+lembra sleep --dry-run         # quem maturaria, sem gastar nada
+lembra gate "<troca>" -v       # o portão sobre uma troca avulsa
+lembra gate-log                # o KPI: cada decisão e como foi resolvida
+lembra calibrate               # o que girar no config, e por quê
+lembra forget <ep_id>          # deleção dirigida + cascata
+lembra eval --estimar          # a conta antes de rodar a regressão
+lembra eval                    # a suíte ponta-a-ponta
+lembra bench --variante oracle -n 10    # LongMemEval
 ```
+
+No repositório, sem instalar: `./bin/lembra <subcomando>`. Os scripts antigos
+(`memctl`, `chat`, `eval`, `runbench`) continuam funcionando como aliases finos.
 
 Testes: `PYTHONPATH=. .venv/bin/python -m unittest discover -s tests`
 
@@ -308,3 +322,100 @@ não perde nada.
 **Fato afundado sai da competição por filtro na consulta, não por remoção do
 índice FTS.** Efeito idêntico, e elimina a chance de índice e verdade
 discordarem.
+
+---
+
+<a name="english"></a>
+
+# lembra — English
+
+**Long-term memory for conversational agents.** Pure Python + SQLite, **zero
+third-party dependencies**. Every LLM call goes to Claude itself, via `claude -p`
+(headless).
+
+The core idea: **most interactions do not deserve to become memory.** They
+confirm what is already known. Storing everything is expensive and — worse — it
+fills memory with noise that competes with what matters. So every stage has a
+gate, and every gate exists to cure a named disease.
+
+> The project's vocabulary stays in Portuguese — *carimbo* (stamp), *purgatório*
+> (purgatory), *cartório* (registry), *sono* (sleep). Not decoration: each word
+> was chosen because the obvious English alternative describes different
+> behavior. See the [glossary](GLOSSARIO.md) for the reasoning behind each one.
+
+## The four stages and their gates
+
+| stage | gate | what gets through | disease cured |
+|---|---|---|---|
+| interaction → episode | **surpresa** (surprise) | only the unexpected | cost |
+| episode → mature | **purgatório** (purgatory) | only what was used, repeated, or is old and surprising | eager consolidation |
+| mature → fact | **auditor** | only what the episodes support | memory poisoning |
+| fact → prompt | competition | core + 3-5 winners | lost-in-the-middle |
+
+## Principles
+
+1. **Capture by surprise, not by default.** Two layers: free heuristics decide
+   most cases; a haiku judge runs only when they are inconclusive. Every
+   decision logs **how** it was resolved.
+2. **A transient buffer before consolidation.** Stamped episodes wait. Only
+   those that were used in retrieval, formed a topic cluster, or are old and
+   very surprising get the expensive pass. The rest expire silently.
+3. **Consolidation with provenance.** Every fact stores the IDs of the episodes
+   it was distilled from, and passes a second call with the prompt inverted:
+   *"list what the episodes do NOT support."* No audit, no write.
+4. **Temporal facts.** `valid_from` / `valid_to`. Updating never overwrites: it
+   closes the old fact's validity and opens the new one's. Distillation declares
+   one of four destinies per proposed fact: `novo`, `substitui`, `condicional`,
+   `excecao_isolada`.
+5. **Forgetting in three forms.** Merge (confirmations dissolve into a
+   confidence counter), decay (unused facts sink out of search before leaving
+   disk), and targeted deletion (deleting an episode reprocesses every fact
+   derived from it).
+6. **Parsimonious retrieval.** SQLite FTS5, no embeddings. Score = BM25 ×
+   recency × confidence. Facts whose validity has ended **do not compete** —
+   they return only for explicitly temporal questions. Consolidated episodes
+   remain searchable as a low-weight raw archive.
+
+## Install & use
+
+```bash
+pip install lembra          # coming in checkpoint 2
+lembra chat -v
+lembra sleep
+lembra calibrate
+```
+
+Requires the `claude` CLI on PATH.
+
+## Measured economics
+
+| operation | cost | latency |
+|---|---|---|
+| gate decision, heuristic | **US$ 0** | ~0.05s |
+| gate decision, haiku judge | US$ 0.013–0.023 | 10–16s |
+| sleep round (distill + audit + tiebreak) | US$ 0.19–0.26 | ~40s |
+| full chat turn | US$ 0.075–0.10 | 4.5–22s |
+
+**The ~19k input-token floor per call is irreducible** (CLI overhead, measured).
+Shortening prompts does not move it. Which is why the whole design bets on **not
+calling** rather than on calling cheaply.
+
+## Benchmark: we ran it, we lost where the thesis says to lose, we published the bill
+
+We ran LongMemEval and **stopped the pilot**: unfavorable trend, insufficient
+sample, structural cause measured. Full report in
+[`RELATORIO-FASE6.md`](RELATORIO-FASE6.md) (Portuguese).
+
+The one-line summary: **the benchmark is adversarial to the merge thesis, and
+real conversations are not.** LongMemEval's haystack is built from unrelated
+sessions with deliberate distractors — by construction, almost nothing confirms
+anything, so there is nothing to merge. Measured on 723 real exchanges: 99% would
+hit the judge, against a much smaller share in an actual conversation.
+
+It also asks, by construction, about details incidental to the conversation's
+purpose. Lossy distillation drops those — and lossy distillation is this engine's
+value proposition. Systems that score high do not distill: they index raw text.
+
+We report the number we got (30% on the oracle variant, 10 questions), the cost
+(US$ 48.97 total), and why we stopped. The comparable number needs the batch API
+rather than the CLI, and is registered as future work.

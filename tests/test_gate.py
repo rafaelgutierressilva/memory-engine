@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from memory import config, db, gate, llm
+from lembra import config, db, gate, llm
 
 
 def fake_judge(surpresa, motivos=("motivo do juiz",), violada="nenhuma",
@@ -305,7 +305,7 @@ class GateSignalsTest(unittest.TestCase):
 
 
 def cli_gate_kinds():
-    from memory.cli import GATE_KINDS
+    from lembra.cli import GATE_KINDS
     return GATE_KINDS
 
 

@@ -6,7 +6,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from memory import config, db, retrieval
+from lembra import config, db, retrieval
 
 
 def dias_atras(n) -> str:
@@ -132,7 +132,7 @@ class UsoImediatoTest(BaseRetrievalTest):
                          "o nucleo tambem e injetado, entao tambem conta uso")
 
     def test_episodio_injetado_conta_uso_e_por_isso_matura(self):
-        from memory import sleep
+        from lembra import sleep
         eid = db.add_episode(self.conn, "Rafael: odeio reuniao antes das 9h.",
                              surprise_score=8.0)
         retrieval.retrieve(self.conn, "reuniao antes das 9h", self.cfg)

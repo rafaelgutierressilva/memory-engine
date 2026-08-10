@@ -1,4 +1,16 @@
-"""memctl — a CLI do motor de memoria."""
+"""lembra — a CLI do motor de memoria.
+
+Um binario so, subcomandos para tudo:
+
+    lembra chat          conversar com o Claude atraves do motor
+    lembra gate          rodar o portao sobre uma troca avulsa
+    lembra sleep         consolidacao + decaimento
+    lembra forget        delecao dirigida + cascata
+    lembra inspect       fato + proveniencia + cadeia temporal
+    lembra calibrate     que botao girar, e por que
+    lembra eval          suite de regressao ponta-a-ponta
+    lembra bench         LongMemEval
+"""
 
 from __future__ import annotations
 
@@ -53,7 +65,7 @@ def cmd_add_episode(args, conn):
         status=args.status,
     )
     db.log_event(conn, "episode_added", episode_id=eid,
-                 source="memctl", surprise=args.surprise, reasons=args.reason or [])
+                 source="lembra", surprise=args.surprise, reasons=args.reason or [])
     print(f"episodio #{eid} gravado como {args.status} (surpresa {args.surprise})")
     return 0
 
@@ -475,6 +487,35 @@ def cmd_seed(args, conn):
     return run_seed(conn, reset=args.reset)
 
 
+def cmd_chat(args, conn):
+    from . import chat
+    argv = []
+    if args.verbose:
+        argv.append("-v")
+    for m in (args.message or []):
+        argv += ["-m", m]
+    if args.db:
+        argv += ["--db", args.db]
+    return chat.main(argv)
+
+
+def cmd_eval(args, conn):
+    from . import evaluation
+    argv = []
+    if args.estimar:
+        argv.append("--estimar")
+    if args.chat_model:
+        argv += ["--chat-model", args.chat_model]
+    if args.verbose:
+        argv.append("-v")
+    return evaluation.main(argv)
+
+
+def cmd_bench(args, conn):
+    from . import bench
+    return bench.main(args.resto)
+
+
 def cmd_config(args, conn):
     cfg = config.load()
     print(f"# {cfg.path}")
@@ -485,7 +526,7 @@ def cmd_config(args, conn):
 # ------------------------------------------------------------------ main
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="memctl", description="Motor de memoria — CLI")
+    p = argparse.ArgumentParser(prog="lembra", description="lembra — memoria de longo prazo para agentes")
     p.add_argument("--db", help="caminho alternativo do banco")
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -555,12 +596,35 @@ def build_parser() -> argparse.ArgumentParser:
     sd.add_argument("--reset", action="store_true", help="zera o banco antes")
     sd.set_defaults(func=cmd_seed)
 
+    ch = sub.add_parser("chat", help="conversar com o Claude atraves do motor")
+    ch.add_argument("-v", "--verbose", action="store_true",
+                    help="mostra o bloco de memoria injetado")
+    ch.add_argument("-m", "--message", action="append",
+                    help="modo nao-interativo; pode repetir")
+    ch.set_defaults(func=cmd_chat)
+
+    ev = sub.add_parser("eval", help="suite de regressao ponta-a-ponta")
+    ev.add_argument("--estimar", action="store_true", help="so mostra a conta")
+    ev.add_argument("--chat-model")
+    ev.add_argument("-v", "--verbose", action="store_true")
+    ev.set_defaults(func=cmd_eval)
+
+    bc = sub.add_parser("bench", help="LongMemEval (repassa os argumentos)")
+    bc.add_argument("resto", nargs=argparse.REMAINDER)
+    bc.set_defaults(func=cmd_bench)
+
     sub.add_parser("config", help="mostra a config carregada").set_defaults(func=cmd_config)
     return p
 
 
+# subcomandos que abrem o proprio banco (ou nenhum)
+SEM_CONEXAO = {"cmd_chat", "cmd_eval", "cmd_bench"}
+
+
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
+    if args.func.__name__ in SEM_CONEXAO:
+        return args.func(args, None) or 0
     conn = db.open_db(args.db)
     try:
         return args.func(args, conn) or 0

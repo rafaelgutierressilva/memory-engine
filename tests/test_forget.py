@@ -11,7 +11,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from memory import config, db, forget, llm
+from lembra import config, db, forget, llm
 
 
 def dias_atras(n) -> str:

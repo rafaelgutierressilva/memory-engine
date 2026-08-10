@@ -23,8 +23,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-import chat
-from memory import calibrate, config, db, sleep as sleep_mod
+from lembra import chat
+from lembra import calibrate, config, db, sleep as sleep_mod
 
 # ------------------------------------------------------------- o roteiro
 # 12 rotineiras, 4 correcoes, 2 mudancas de assunto, 2 pedidos de esquecimento.

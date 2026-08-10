@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# lembra — CLI do projeto (wrapper de desenvolvimento).
+# O pacote instalado expoe o mesmo comando pelo entry point do pyproject.
+set -euo pipefail
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PYTHONPATH="$DIR${PYTHONPATH:+:$PYTHONPATH}"
+exec "$DIR/.venv/bin/python" -m lembra.cli "$@"

@@ -7,7 +7,7 @@ src/evaluation/evaluate_qa.py do repositorio xiaowu0162/LongMemEval.
 
 import unittest
 
-import bench
+from lembra import bench
 
 
 class TemplatesOficiaisTest(unittest.TestCase):

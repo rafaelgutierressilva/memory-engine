@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# chat — wrapper: conversa com o Claude atraves do motor, de qualquer cwd.
+# ALIAS DE COMPATIBILIDADE — `chat` virou `lembra chat`.
+# Mantido para nao quebrar dedo-memoria e scripts antigos.
 set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export PYTHONPATH="$DIR${PYTHONPATH:+:$PYTHONPATH}"
-exec "$DIR/.venv/bin/python" "$DIR/chat.py" "$@"
+echo "aviso: \`chat\` agora e \`lembra chat\` (este alias segue funcionando)" >&2
+exec "$DIR/bin/lembra" chat "$@"
